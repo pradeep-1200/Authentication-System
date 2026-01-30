@@ -32,7 +32,7 @@ $(document).ready(function () {
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging in...');
 
         $.ajax({
-            url: "../backend/login.php",
+            url: "/backend/login.php",
             type: "POST",
             dataType: "json",
             data: { email, password },

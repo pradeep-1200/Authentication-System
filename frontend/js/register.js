@@ -34,7 +34,7 @@ $(document).ready(function () {
         $btn.prop('disabled', true).html('Processing...');
 
         $.ajax({
-            url: "../backend/register.php",
+            url: "/backend/register.php",
             type: "POST",
             dataType: "json",
             data: {

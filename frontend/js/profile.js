@@ -39,7 +39,7 @@ $(document).ready(function () {
 
     // --- Validate Session ---
     $.ajax({
-        url: "../backend/validate_session.php",
+        url: "/backend/validate_session.php",
         type: "POST",
         dataType: "json",
         data: { token: token },
@@ -53,7 +53,7 @@ $(document).ready(function () {
 
     // --- Fetch Profile Data ---
     $.ajax({
-        url: "../backend/profile_fetch.php",
+        url: "/backend/profile_fetch.php",
         type: "POST",
         dataType: "json",
         data: { token },
@@ -92,7 +92,7 @@ $(document).ready(function () {
         $btn.prop('disabled', true).text('Saving...');
 
         $.ajax({
-            url: "../backend/profile_update.php",
+            url: "/backend/profile_update.php",
             type: "POST",
             dataType: "json",
             data: {
@@ -121,7 +121,7 @@ $(document).ready(function () {
     // --- Logout ---
     $("#logoutBtn").click(function () {
         $.ajax({
-            url: "../backend/logout.php",
+            url: "/backend/logout.php",
             type: "POST",
             data: { token: token },
             complete: function () {

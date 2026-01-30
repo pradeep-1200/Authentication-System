@@ -3,9 +3,10 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 try {
-    $client = new MongoDB\Client("mongodb+srv://voiddragon351_db_user:12560@account-portal.lmbhutd.mongodb.net/");
-    $db = $client->account_portal;
-    $profiles = $db->profiles;
+    $client = new MongoDB\Client(getenv("MONGO_URI"));
+$db = $client->guvi_internship;
+$profiles = $db->profiles;
+
 } catch (Exception $e) {
     // Return JSON error if connection fails immediately
     header("Content-Type: application/json");
