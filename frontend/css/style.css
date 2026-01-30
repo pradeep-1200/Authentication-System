@@ -11,6 +11,8 @@
     --text-muted: #64748b; /* Slate 500 */
     --border-radius: 0.75rem;
     --transition-speed: 0.2s;
+    --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
 }
 
 body {
@@ -25,19 +27,20 @@ body {
 h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     color: var(--text-main);
+    letter-spacing: -0.025em;
 }
 
 /* Navbar */
 .navbar {
     background-color: var(--card-bg);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border-bottom: 1px solid #e2e8f0;
     padding: 1rem 0;
 }
 
 .navbar-brand {
     font-weight: 700;
     color: var(--primary-color) !important;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -56,47 +59,59 @@ h1, h2, h3, h4, h5, h6 {
 
 .auth-card {
     background: var(--card-bg);
-    border: none;
+    border: 1px solid #e2e8f0;
     border-radius: var(--border-radius);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-card);
     width: 100%;
-    max-width: 450px;
+    max-width: 480px;
     overflow: hidden;
+    transition: transform 0.3s ease;
 }
 
 .auth-header {
-    padding: 2rem 2rem 1rem;
+    padding: 2.5rem 2rem 1.5rem;
     text-align: center;
 }
 
 .auth-body {
-    padding: 1rem 2rem 2rem;
+    padding: 1rem 2.5rem 2.5rem;
 }
 
 /* Forms */
 .form-label {
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.875rem;
     color: var(--text-main);
     margin-bottom: 0.5rem;
+    display: block;
 }
 
 .form-control {
-    border: 1px solid #cbd5e1;
+    border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
     font-size: 0.95rem;
     transition: all var(--transition-speed);
+    background-color: #f8fafc;
 }
 
 .form-control:focus {
+    background-color: #fff;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.1);
+    box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.1);
+}
+
+.form-control:disabled, .form-control[readonly] {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.8;
 }
 
 .input-group-text {
-    background-color: #f1f5f9;
-    border: 1px solid #cbd5e1;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
     color: var(--secondary-color);
 }
 
@@ -106,7 +121,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     border-radius: 0.5rem;
     transition: all var(--transition-speed);
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
@@ -115,22 +130,25 @@ h1, h2, h3, h4, h5, h6 {
 .btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
+    box-shadow: 0 4px 6px -1px rgba(67, 56, 202, 0.2);
 }
 
 .btn-primary:hover, .btn-primary:focus {
     background-color: var(--primary-hover);
     border-color: var(--primary-hover);
     transform: translateY(-1px);
+    box-shadow: 0 6px 8px -1px rgba(67, 56, 202, 0.3);
 }
 
 .btn-outline-secondary {
-    border-color: #cbd5e1;
+    border-color: #e2e8f0;
     color: var(--text-main);
+    background-color: white;
 }
 
 .btn-outline-secondary:hover {
     background-color: #f8fafc;
-    border-color: #94a3b8;
+    border-color: #cbd5e1;
     color: var(--text-main);
 }
 
@@ -144,6 +162,16 @@ h1, h2, h3, h4, h5, h6 {
     border-color: #dc2626;
 }
 
+/* Attributes / Badges */
+.badge-custom {
+    background-color: #e0e7ff;
+    color: var(--primary-color);
+    padding: 0.35em 0.8em;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
 /* Alerts */
 .alert {
     border: none;
@@ -153,58 +181,76 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-
-.alert-dismissible .btn-close {
-    padding: 1.25rem;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 1.5rem;
 }
 
 /* Profile Specifics */
-.profile-header {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-    color: white;
-    padding: 3rem 0;
-    margin-bottom: 2rem;
+.profile-cover {
+    height: 160px;
+    background: linear-gradient(120deg, var(--primary-color), var(--primary-hover));
+    position: relative;
     border-radius: 0 0 1.5rem 1.5rem;
-    text-align: center;
+    margin-bottom: 4rem; /* creates space for the overlapping avatar */
 }
 
-.profile-avatar {
-    width: 80px;
-    height: 80px;
-    background-color: rgba(255,255,255,0.2);
+.profile-card-container {
+    max-width: 800px;
+    margin: -100px auto 2rem; /* Overlap cover */
+    padding: 0 1rem;
+    position: relative;
+    z-index: 10;
+}
+
+.profile-card {
+    background: var(--card-bg);
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
+    padding: 2rem;
+}
+
+.profile-avatar-wrapper {
+    position: absolute;
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: white; /* Ring color */
+    padding: 4px;
+    border-radius: 50%;
+    box-shadow: var(--shadow-soft);
+}
+
+.profile-avatar-inner {
+    width: 90px;
+    height: 90px;
+    background-color: #e2e8f0;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1rem;
-    font-size: 2rem;
-    color: white;
+    color: var(--text-muted);
 }
 
-.card-title-custom {
-    color: var(--text-muted);
-    font-size: 0.75rem;
+.section-label {
     text-transform: uppercase;
+    font-size: 0.75rem;
     letter-spacing: 0.05em;
-    font-weight: 600;
+    color: var(--text-muted);
+    font-weight: 700;
     margin-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.5rem;
 }
 
 /* Utilities */
 .text-link {
     color: var(--primary-color);
     text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
+    font-weight: 600;
 }
 
 .text-link:hover {
     color: var(--primary-hover);
     text-decoration: underline;
-}
-
-.min-h-screen {
-    min-height: 100vh;
 }
