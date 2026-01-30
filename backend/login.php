@@ -1,22 +1,28 @@
 <?php
+ini_set('display_errors', 0);
+error_reporting(0);
 header("Content-Type: application/json");
 
-require_once "config/mysql.php";
-require_once "config/redis.php";
+require_once __DIR__ . "/config/mysql.php";
+require_once __DIR__ . "/config/redis.php";
 
-$email = $_POST['email'];
-$password = $_POST['password'];
+$email = $_POST['email'] ?? '';
+$password = $_POST['password'] ?? '';
 
-$stmt = $conn->prepare(
-    "SELECT id, password FROM users WHERE email = ?"
-);
+if (!$email || !$password) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Email and password are required"
+    ]);
+    exit;
+}
+
+$stmt = $conn->prepare("SELECT id, password FROM users WHERE email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
-
 $result = $stmt->get_result();
 
 if ($result->num_rows === 1) {
-
     $user = $result->fetch_assoc();
 
     if (password_verify($password, $user['password'])) {
@@ -30,16 +36,18 @@ if ($result->num_rows === 1) {
             "message" => "Login successful",
             "token" => $token
         ]);
+        exit;
     } else {
         echo json_encode([
             "status" => "error",
-            "message" => "Invalid credentials"
+            "message" => "Invalid email or password"
         ]);
+        exit;
     }
-
 } else {
     echo json_encode([
         "status" => "error",
-        "message" => "User not found"
+        "message" => "Invalid email or password"
     ]);
+    exit;
 }

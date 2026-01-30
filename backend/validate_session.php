@@ -1,9 +1,19 @@
 <?php
+ini_set('display_errors', 0);
+error_reporting(0);
 header("Content-Type: application/json");
 
-require_once "config/redis.php";
+require_once __DIR__ . "/config/redis.php";
 
-$token = $_POST['token'];
+$token = $_POST['token'] ?? '';
+
+if (!$token) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "No token provided"
+    ]);
+    exit;
+}
 
 $userId = $redis->get($token);
 
@@ -12,9 +22,11 @@ if ($userId) {
         "status" => "success",
         "user_id" => $userId
     ]);
+    exit;
 } else {
     echo json_encode([
         "status" => "error",
         "message" => "Invalid session"
     ]);
+    exit;
 }

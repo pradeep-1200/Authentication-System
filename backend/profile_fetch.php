@@ -1,11 +1,18 @@
 <?php
+ini_set('display_errors', 0);
+error_reporting(0);
 header("Content-Type: application/json");
 
-require_once "config/redis.php";
-require_once "config/mongo.php";
-require_once "config/mysql.php";
+require_once __DIR__ . "/config/redis.php";
+require_once __DIR__ . "/config/mongo.php";
+require_once __DIR__ . "/config/mysql.php";
 
-$token = $_POST['token'];
+$token = $_POST['token'] ?? '';
+if (!$token) {
+    echo json_encode(["status" => "error", "message" => "No token provided"]);
+    exit;
+}
+
 $userId = $redis->get($token);
 
 if (!$userId) {
@@ -24,24 +31,15 @@ $stmt->close();
 
 $profile = $profiles->findOne(["user_id" => (int)$userId]);
 
-if ($profile) {
-    echo json_encode([
-        "status" => "success",
-        "data" => [
-            "name" => $name,
-            "age" => $profile["age"] ?? "",
-            "dob" => $profile["dob"] ?? "",
-            "contact" => $profile["contact"] ?? ""
-        ]
-    ]);
-} else {
-    echo json_encode([
-        "status" => "success",
-        "data" => [
-            "name" => $name,
-            "age" => "",
-            "dob" => "",
-            "contact" => ""
-        ]
-    ]);
-}
+$data = [
+    "name" => $name,
+    "age" => $profile["age"] ?? "",
+    "dob" => $profile["dob"] ?? "",
+    "contact" => $profile["contact"] ?? ""
+];
+
+echo json_encode([
+    "status" => "success",
+    "data" => $data
+]);
+exit;

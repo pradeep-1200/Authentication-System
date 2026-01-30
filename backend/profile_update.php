@@ -1,10 +1,12 @@
 <?php
+ini_set('display_errors', 0);
+error_reporting(0);
 header("Content-Type: application/json");
 
-require_once "config/redis.php";
-require_once "config/mongo.php";
+require_once __DIR__ . "/config/redis.php";
+require_once __DIR__ . "/config/mongo.php";
 
-$token = $_POST['token'];
+$token = $_POST['token'] ?? '';
 $userId = $redis->get($token);
 
 if (!$userId) {
@@ -14,9 +16,9 @@ if (!$userId) {
 
 $data = [
     "user_id" => (int)$userId,
-    "age" => $_POST['age'],
-    "dob" => $_POST['dob'],
-    "contact" => $_POST['contact']
+    "age" => $_POST['age'] ?? '',
+    "dob" => $_POST['dob'] ?? '',
+    "contact" => $_POST['contact'] ?? ''
 ];
 
 $profiles->updateOne(
@@ -29,3 +31,4 @@ echo json_encode([
     "status" => "success",
     "message" => "Profile updated successfully"
 ]);
+exit;
