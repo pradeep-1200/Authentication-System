@@ -1,20 +1,22 @@
 <?php
+ini_set('display_errors', 0);
+error_reporting(0);
+header("Content-Type: application/json");
 
 $host = getenv("MYSQL_HOST");
 $user = getenv("MYSQL_USER");
 $password = getenv("MYSQL_PASSWORD");
 $dbname = getenv("MYSQL_DB");
+$port = getenv("MYSQL_PORT");
 
-// Suppress default warnings to handle connection errors manually
 mysqli_report(MYSQLI_REPORT_OFF);
 
-$conn = @new mysqli($host, $user, $password, $dbname);
+$conn = @new mysqli($host, $user, $password, $dbname, (int)$port);
 
 if ($conn->connect_error) {
-    header("Content-Type: application/json");
     echo json_encode([
-        "status" => "error", 
-        "message" => "Database connection failed: " . $conn->connect_error
+        "status" => "error",
+        "message" => "Database connection failed"
     ]);
     exit;
 }
