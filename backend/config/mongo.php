@@ -3,8 +3,8 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 try {
-    $client = new MongoDB\Client("mongodb://localhost:27017");
-    $db = $client->guvi_internship;
+    $client = new MongoDB\Client("mongodb+srv://voiddragon351_db_user:12560@account-portal.lmbhutd.mongodb.net/");
+    $db = $client->account_portal;
     $profiles = $db->profiles;
 } catch (Exception $e) {
     // Return JSON error if connection fails immediately
