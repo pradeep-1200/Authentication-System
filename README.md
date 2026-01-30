@@ -50,5 +50,5 @@ This project strictly adheres to the GUVI internship guidelines:
     Host the project on a local server (e.g., XAMPP/Apache) and navigate to the `frontend/login.html` page to start.
 
 ## Live Demo & Repository
-*   **GitHub Repository:** [Link to GitHub Repository]
+*   **GitHub Repository:** https://github.com/pradeep-1200/Authentication-System.git
 *   **Live Application:** [Link to Hosted Application]
