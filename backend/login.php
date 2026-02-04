@@ -18,6 +18,11 @@ if (!$email || !$password) {
 }
 
 $stmt = $conn->prepare("SELECT id, password FROM users WHERE email = ?");
+if (!$stmt) {
+    echo json_encode(["status"=>"error","message"=>"Database error"]);
+    exit;
+}
+
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -27,27 +32,19 @@ if ($result->num_rows === 1) {
 
     if (password_verify($password, $user['password'])) {
         $token = bin2hex(random_bytes(16));
+        $redis->setex($token, 3600, $user['id']);
 
-        // Store session in Redis
-        $redis->set($token, $user['id']);
-        
         echo json_encode([
             "status" => "success",
             "message" => "Login successful",
             "token" => $token
         ]);
         exit;
-    } else {
-        echo json_encode([
-            "status" => "error",
-            "message" => "Invalid email or password"
-        ]);
-        exit;
     }
-} else {
-    echo json_encode([
-        "status" => "error",
-        "message" => "Invalid email or password"
-    ]);
-    exit;
 }
+
+echo json_encode([
+    "status" => "error",
+    "message" => "Invalid email or password"
+]);
+exit;

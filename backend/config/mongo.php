@@ -1,15 +1,27 @@
 <?php
+ini_set('display_errors', 0);
+error_reporting(0);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-try {
-    $client = new MongoDB\Client(getenv("MONGO_URI"));
-$db = $client->guvi_internship;
-$profiles = $db->profiles;
+$mongoUri = getenv("MONGO_URI");
 
+if (!$mongoUri) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "MongoDB URI not set"
+    ]);
+    exit;
+}
+
+try {
+    $client = new MongoDB\Client($mongoUri);
+    $db = $client->selectDatabase("guvi_internship");
+    $profiles = $db->profiles;
 } catch (Exception $e) {
-    // Return JSON error if connection fails immediately
-    header("Content-Type: application/json");
-    echo json_encode(["status" => "error", "message" => "MongoDB Connection Error: " . $e->getMessage()]);
+    echo json_encode([
+        "status" => "error",
+        "message" => "MongoDB connection failed"
+    ]);
     exit;
 }

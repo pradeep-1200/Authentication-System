@@ -1,6 +1,31 @@
 <?php
+ini_set('display_errors', 0);
+error_reporting(0);
+
+$redisUrl = getenv("REDIS_HOST"); // full rediss:// URL
+
+if (!$redisUrl) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Redis URL not set"
+    ]);
+    exit;
+}
+
+$parts = parse_url($redisUrl);
 
 $redis = new Redis();
-$redis->connect(getenv("REDIS_HOST"), getenv("REDIS_PORT"));
-$redis->auth(getenv("REDIS_PASSWORD"));
 
+try {
+    $redis->connect($parts['host'], $parts['port'], 2.5);
+
+    if (isset($parts['pass'])) {
+        $redis->auth($parts['pass']);
+    }
+} catch (Exception $e) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Redis connection failed"
+    ]);
+    exit;
+}
