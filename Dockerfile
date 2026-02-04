@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y \
     unzip git \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
 # Copy only composer files first to leverage Docker cache
 COPY backend/composer.json backend/composer.lock* /var/www/html/backend/
 
