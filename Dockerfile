@@ -27,6 +27,10 @@ RUN rm -rf vendor composer.lock
 # Install dependencies freshly in the environment
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-interaction
 
+# PERMISSIONS FIX: Ensure www-data (Apache user) owns everything
+RUN chown -R www-data:www-data /var/www/html
+RUN chmod -R 755 /var/www/html
+
 # Reset workdir to root
 WORKDIR /var/www/html/
 
