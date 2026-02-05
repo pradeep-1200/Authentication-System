@@ -21,10 +21,7 @@ COPY . /var/www/html/
 # ROBUST DEPENDENCY INSTALLATION
 WORKDIR /var/www/html/backend
 
-# Force removal of any existing vendor/lock files to prevent Windows/Linux conflicts
-RUN rm -rf vendor composer.lock
-
-# Install dependencies freshly in the environment
+# Install dependencies from lock file for consistent builds
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-interaction
 
 # PERMISSIONS FIX: Ensure www-data (Apache user) owns everything
