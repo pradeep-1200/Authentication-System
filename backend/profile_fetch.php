@@ -24,6 +24,7 @@ set_exception_handler(function ($e) {
 register_shutdown_function(function () {
     $error = error_get_last();
     if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        http_response_code(200);
         echo json_encode([
             "status" => "error",
             "message" => "Fatal error: " . $error['message'] . " in " . $error['file'] . ":" . $error['line']
