@@ -1,116 +1,77 @@
 <?php
-// ROBUST PROFILE FETCH v3
-// Explicitly handles errors including require failures
+// Robust profile fetch with consistent error reporting
 
 ini_set('display_errors', 0);
-error_reporting(0);
-header("Content-Type: application/json");
+ini_set('log_errors', 1);
+ini_set('error_log', 'php://stderr');
+error_reporting(E_ALL);
 
-// Define a shutdown function to catch fatal errors (like require failures)
-function shutdownHandler() {
+header("Content-Type: application/json");
+http_response_code(200);
+
+set_error_handler(function ($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+set_exception_handler(function ($e) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Unhandled error: " . $e->getMessage()
+    ]);
+    exit;
+});
+
+register_shutdown_function(function () {
     $error = error_get_last();
-    if ($error && ($error['type'] === E_ERROR || $error['type'] === E_PARSE || $error['type'] === E_CORE_ERROR)) {
-        http_response_code(200); // Force 200 to show message in frontend
+    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
         echo json_encode([
             "status" => "error",
-            "message" => "FATAL ERROR: " . $error['message'] . " in " . $error['file'] . ":" . $error['line']
+            "message" => "Fatal error: " . $error['message'] . " in " . $error['file'] . ":" . $error['line']
         ]);
         exit;
     }
-}
-register_shutdown_function('shutdownHandler');
+});
 
 try {
-    // ----------------------------------------------------
-    // PRE-CHECK: Vendor
-    // ----------------------------------------------------
-    $backendDir = __DIR__; // /var/www/html/backend
-    $autoloadPath = $backendDir . '/vendor/autoload.php';
-
-    if (!file_exists($autoloadPath)) {
-        throw new Exception("Autoload not found at $autoloadPath");
-    }
-
-    // Try to require - if this fails due to permissions, shutdownHandler catches it
-    require_once $autoloadPath;
-    
-    // Check if MongoDB Library loaded
-    if (!class_exists('MongoDB\Client')) {
-         throw new Exception("MongoDB\Client class not found after autoload.");
-    }
-
-    // ----------------------------------------------------
-    // TOKEN
-    // ----------------------------------------------------
-    // Headers polyfill inline
-    $headers = [];
-    if (function_exists('getallheaders')) {
-        $headers = getallheaders();
-    } else {
-        foreach ($_SERVER as $name => $value) {
-            if (substr($name, 0, 5) == 'HTTP_') {
-                 $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
-            }
-        }
-    }
-    
+    // Token extraction
+    $headers = function_exists('getallheaders') ? getallheaders() : [];
     $headers = array_change_key_case($headers, CASE_LOWER);
-    $token = $headers['authorization'] ?? $_POST['token'] ?? '';
-    
+    $token = $headers['authorization'] ?? $_POST['token'] ?? $_GET['token'] ?? '';
+
     if (strpos($token, 'Bearer ') === 0) {
         $token = substr($token, 7);
-    }
-
-    if (!$token) {
-        // Fallback: Check if sent via GET query param (sometimes useful for debugging)
-        $token = $_GET['token'] ?? '';
     }
 
     if (!$token) {
         throw new Exception("Session token missing.");
     }
 
-    // ----------------------------------------------------
-    // REDIS
-    // ----------------------------------------------------
-    $redisUrl = getenv("REDIS_HOST");
-    if (!$redisUrl) throw new Exception("REDIS_HOST missing");
+    // Redis + Mongo connections (reuse shared configs)
+    require_once __DIR__ . "/config/redis.php";
+    require_once __DIR__ . "/config/mongo.php";
 
-    $redis = new Redis();
-    $parts = parse_url($redisUrl);
-    
-    $host = $parts['host'] ?? '';
-    $port = $parts['port'] ?? 6379;
-    $user = $parts['user'] ?? '';
-    $pass = $parts['pass'] ?? '';
-    
-    if (($parts['scheme']??'') === 'rediss') $host = 'tls://' . $host;
+    if (!isset($redis)) {
+        throw new Exception("Redis client not initialized.");
+    }
+    if (!isset($profiles)) {
+        throw new Exception("Mongo collection not initialized.");
+    }
 
-    if (!$redis->connect($host, $port, 2.5)) throw new Exception("Redis connect failed");
-    if ($pass && !$redis->auth($pass)) throw new Exception("Redis auth failed");
-
-    // ----------------------------------------------------
-    // SESSION LOOKUP
-    // ----------------------------------------------------
+    // Session lookup
     $userId = $redis->get($token);
-    if (!$userId) throw new Exception("Invalid session token");
+    if (!$userId) {
+        throw new Exception("Invalid session token");
+    }
 
-    // ----------------------------------------------------
-    // MONGO FETCH
-    // ----------------------------------------------------
-    $mongoUri = getenv("MONGO_URI");
-    if (!$mongoUri) throw new Exception("MONGO_URI missing");
-
-    $client = new MongoDB\Client($mongoUri);
-    $db = $client->selectDatabase("guvi_internship");
-    $profiles = $db->profiles;
-
+    // Profile fetch
     $profile = $profiles->findOne(
         ["user_id" => (int)$userId],
         ["projection" => ["_id" => 0]]
     );
-    
-    if (!$profile) $profile = (object)[];
+
+    if (!$profile) {
+        $profile = (object)[];
+    }
 
     echo json_encode([
         "status" => "success",
@@ -121,9 +82,7 @@ try {
             "contact" => $profile['contact'] ?? ''
         ]
     ]);
-
 } catch (Throwable $e) {
-    http_response_code(200);
     echo json_encode([
         "status" => "error",
         "message" => "Error: " . $e->getMessage()
