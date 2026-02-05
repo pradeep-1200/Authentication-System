@@ -1,0 +1,4 @@
+**/vendor
+**/.git
+**/.DS_Store
+**.env
