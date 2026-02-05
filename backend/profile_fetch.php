@@ -25,6 +25,16 @@ try {
     if (!file_exists(__DIR__ . "/config/mongo.php")) throw new Exception("config/mongo.php not found");
 
     require_once __DIR__ . "/config/redis.php";
+    
+    // Explicitly check for mongo config and autoload
+    if (!file_exists(__DIR__ . "/config/mongo.php")) {
+        throw new Exception("config/mongo.php is missing");
+    }
+    if (!file_exists(__DIR__ . "/vendor/autoload.php")) {
+        // If autoload is missing, mongo.php will crash. Catch it early.
+        throw new Exception("vendor/autoload.php is missing - Composer install failed");
+    }
+
     require_once __DIR__ . "/config/mongo.php";
 
     // 1. Get token from Authorization header or POST

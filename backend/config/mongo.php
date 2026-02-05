@@ -6,11 +6,9 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $mongoUri = getenv("MONGO_URI");
 
 if (!$mongoUri) {
-    echo json_encode([
-        "status" => "error",
-        "message" => "MongoDB URI not set"
-    ]);
-    exit;
+    // Graceful fallback for debugging or local testing
+    // echo json_encode(["status" => "error", "message" => "MongoDB URI not set"]);
+    // exit;
 }
 
 try {
@@ -20,7 +18,7 @@ try {
 } catch (Exception $e) {
     echo json_encode([
         "status" => "error",
-        "message" => "MongoDB connection failed"
+        "message" => "MongoDB connection failed: " . $e->getMessage()
     ]);
     exit;
 }

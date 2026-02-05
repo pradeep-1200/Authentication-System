@@ -3,12 +3,11 @@ FROM php:8.2-apache
 # Enable Apache rewrite
 RUN a2enmod rewrite
 
-# Install PHP extensions (mysqli, mongodb, redis) using the installer script
-# This is much faster and uses pre-built binaries compared to 'pecl install'
+# Install PHP extensions (mysqli, mongodb, redis)
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 RUN install-php-extensions mysqli mongodb redis
 
-# Install system dependencies required for Composer/General usage
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     unzip git \
     && rm -rf /var/lib/apt/lists/*
@@ -16,17 +15,19 @@ RUN apt-get update && apt-get install -y \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy only composer files first to leverage Docker cache
-COPY backend/composer.json backend/composer.lock* /var/www/html/backend/
-
-# Install backend dependencies
-# --ignore-platform-reqs: prevents failure if the build environment slightly differs from the lock file requirements (e.g., extensions)
-# --no-dev: optimization for production
-# --no-scripts: prevents post-install scripts from failing due to environment specificities
-WORKDIR /var/www/html/backend
-RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-scripts --no-interaction
-
-# Copy the rest of the project files
+# COPY EVERYTHING FIRST (Overwrites container files with local files)
 COPY . /var/www/html/
+
+# ROBUST DEPENDENCY INSTALLATION
+WORKDIR /var/www/html/backend
+
+# Force removal of any existing vendor/lock files to prevent Windows/Linux conflicts
+RUN rm -rf vendor composer.lock
+
+# Install dependencies freshly in the environment
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-interaction
+
+# Reset workdir to root
+WORKDIR /var/www/html/
 
 EXPOSE 80
