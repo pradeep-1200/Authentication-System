@@ -60,6 +60,9 @@ $(document).ready(function () {
         },
         success: function (res) {
             if (res.status === "success") {
+                if (res.data.name) {
+                    $("#userNameDisplay").text(res.data.name);
+                }
                 $("#age").val(res.data.age);
                 $("#dob").val(res.data.dob);
                 $("#contact").val(res.data.contact);

@@ -47,15 +47,19 @@ try {
         throw new Exception("Session token missing.");
     }
 
-    // Redis + Mongo connections (reuse shared configs)
+    // Redis + Mongo + MySQL connections (reuse shared configs)
     require_once __DIR__ . "/config/redis.php";
     require_once __DIR__ . "/config/mongo.php";
+    require_once __DIR__ . "/config/mysql.php";
 
     if (!isset($redis)) {
         throw new Exception("Redis client not initialized.");
     }
     if (!isset($profiles)) {
         throw new Exception("Mongo collection not initialized.");
+    }
+    if (!isset($conn)) {
+        throw new Exception("MySQL connection not initialized.");
     }
 
     // Session lookup
@@ -74,10 +78,26 @@ try {
         $profile = (object)[];
     }
 
+    // Fetch name from MySQL
+    $name = '';
+    $stmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
+    if (!$stmt) {
+        throw new Exception("MySQL prepare failed");
+    }
+    $stmt->bind_param("i", $userId);
+    if ($stmt->execute()) {
+        $stmt->bind_result($nameResult);
+        if ($stmt->fetch()) {
+            $name = $nameResult;
+        }
+    }
+    $stmt->close();
+
     echo json_encode([
         "status" => "success",
         "data" => [
             "user_id" => (int)$userId,
+            "name" => $name,
             "age" => $profile['age'] ?? '',
             "dob" => $profile['dob'] ?? '',
             "contact" => $profile['contact'] ?? ''
