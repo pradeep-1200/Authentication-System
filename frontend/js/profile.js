@@ -54,21 +54,20 @@ $(document).ready(function () {
     // --- Fetch Profile Data ---
     $.ajax({
         url: "/backend/profile_fetch.php",
-        type: "POST",
-        dataType: "json",
-        data: { token },
+        type: "GET",
+        headers: {
+            "Authorization": token
+        },
         success: function (res) {
-            if (res.status === "success" && res.data) {
-                // Pre-fill data
-                $("#userNameDisplay").text(res.data.name || 'User');
-                $("#age").val(res.data.age || '');
-                $("#dob").val(res.data.dob || '');
-                $("#contact").val(res.data.contact || '');
+            if (res.status === "success") {
+                $("#age").val(res.data.age);
+                $("#dob").val(res.data.dob);
+                $("#contact").val(res.data.contact);
             } else {
-                showAlert("Could not load profile details.", "warning");
+                showAlert(res.message, "warning");
             }
         },
-        error: function() {
+        error: function () {
             showAlert("Connection error while fetching profile.", "danger");
         }
     });

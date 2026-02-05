@@ -1,44 +1,47 @@
 <?php
-
+ini_set('display_errors', 0);
+error_reporting(0);
 header("Content-Type: application/json");
 
-require_once __DIR__ . "/config/redis.php";
-require_once __DIR__ . "/config/mongo.php";
-require_once __DIR__ . "/config/mysql.php";
+try {
+    require_once __DIR__ . "/config/redis.php";
+    require_once __DIR__ . "/config/mongo.php";
 
-$token = $_POST['token'] ?? '';
-if (!$token) {
-    echo json_encode(["status" => "error", "message" => "No token provided"]);
+    // 1. Get token from Authorization header
+    $headers = getallheaders();
+    $token = $headers['Authorization'] ?? '';
+
+    if (!$token) {
+        throw new Exception("Session token missing");
+    }
+
+    // 2. Validate token in Redis
+    $userId = $redis->get($token);
+
+    if (!$userId) {
+        throw new Exception("Invalid or expired session");
+    }
+
+    // 3. Fetch profile from MongoDB
+    $profile = $profiles->findOne(
+        ["user_id" => (int)$userId],
+        ["projection" => ["_id" => 0]]
+    );
+
+    if (!$profile) {
+        throw new Exception("Profile not found");
+    }
+
+    echo json_encode([
+        "status" => "success",
+        "data" => $profile
+    ]);
+    exit;
+
+} catch (Exception $e) {
+    echo json_encode([
+        "status" => "error",
+        "message" => $e->getMessage()
+    ]);
     exit;
 }
-
-$userId = $redis->get($token);
-
-if (!$userId) {
-    echo json_encode(["status" => "error", "message" => "Invalid session"]);
-    exit;
-}
-
-// Fetch Name from MySQL
-$stmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
-$name = $user ? $user['name'] : "";
-$stmt->close();
-
-$profile = $profiles->findOne(["user_id" => (int)$userId]);
-
-$data = [
-    "name" => $name,
-    "age" => $profile["age"] ?? "",
-    "dob" => $profile["dob"] ?? "",
-    "contact" => $profile["contact"] ?? ""
-];
-
-echo json_encode([
-    "status" => "success",
-    "data" => $data
-]);
-exit;
