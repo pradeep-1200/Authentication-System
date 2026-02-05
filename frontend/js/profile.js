@@ -67,8 +67,9 @@ $(document).ready(function () {
                 showAlert(res.message, "warning");
             }
         },
-        error: function () {
-            showAlert("Connection error while fetching profile.", "danger");
+        error: function (xhr) {
+            const msg = xhr && xhr.responseText ? xhr.responseText : "Connection error while fetching profile.";
+            showAlert(msg, "danger");
         }
     });
 

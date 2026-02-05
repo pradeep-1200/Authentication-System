@@ -14,6 +14,14 @@ if (!$redisUrl) {
 
 $parts = parse_url($redisUrl);
 
+if (!class_exists('Redis')) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Redis extension not available"
+    ]);
+    exit;
+}
+
 $redis = new Redis();
 
 try {
