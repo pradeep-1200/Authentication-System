@@ -1,12 +1,12 @@
 <?php
-// ENABLE DEBUGGING
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// MONOLITHIC PROFILE_FETCH.PHP TO PREVENT 500 ERRORS
+// We define everything inline to ensure try-catch wraps absolutely everything.
 
-header("Content-Type: application/json");
+ini_set('display_errors', 0);
+error_reporting(0);
+header("Content-Type: application/json"); // Always return JSON
 
-// Polyfill for getallheaders() if it doesn't exist
+// Header Polyfill
 if (!function_exists('getallheaders')) {
     function getallheaders() {
         $headers = [];
@@ -20,92 +20,122 @@ if (!function_exists('getallheaders')) {
 }
 
 try {
-    // Check if files exist to avoid fatal require errors
-    if (!file_exists(__DIR__ . "/config/redis.php")) throw new Exception("config/redis.php not found");
-    if (!file_exists(__DIR__ . "/config/mongo.php")) throw new Exception("config/mongo.php not found");
-
-    require_once __DIR__ . "/config/redis.php";
+    // ----------------------------------------------------
+    // 1. ENVIRONMENT & DEPENDENCY CHECKS
+    // ----------------------------------------------------
     
-    // Explicitly check for mongo config and autoload
-    if (!file_exists(__DIR__ . "/config/mongo.php")) {
-        throw new Exception("config/mongo.php is missing");
+    // Check Autoload (Critical)
+    $autoloadPath = __DIR__ . '/vendor/autoload.php';
+    if (!file_exists($autoloadPath)) {
+        throw new Exception("Vendor autoload missing at: $autoloadPath. Composer install failed.");
     }
-    if (!file_exists(__DIR__ . "/vendor/autoload.php")) {
-        // If autoload is missing, mongo.php will crash. Catch it early.
-        throw new Exception("vendor/autoload.php is missing - Composer install failed");
-    }
-
-    require_once __DIR__ . "/config/mongo.php";
-
-    // 1. Get token from Authorization header or POST
+    require_once $autoloadPath;
+    
+    // ----------------------------------------------------
+    // 2. TOKEN EXTRACTION
+    // ----------------------------------------------------
     $headers = getallheaders();
-    $token = '';
-    
-    // Case-insensitive header check
     $headers = array_change_key_case($headers, CASE_LOWER);
-    
-    if (isset($headers['authorization'])) {
-        $token = $headers['authorization'];
-    } elseif (isset($_POST['token'])) {
-        $token = $_POST['token'];
-    }
+    $token = $headers['authorization'] ?? $_POST['token'] ?? '';
 
-    // Remove 'Bearer ' prefix if present
     if (strpos($token, 'Bearer ') === 0) {
         $token = substr($token, 7);
     }
 
     if (!$token) {
-        throw new Exception("Session token missing. Debug: Headers received: " . json_encode($headers));
+        throw new Exception("Session token missing.");
     }
 
-    // 2. Validate token in Redis
-    if (!isset($redis)) {
-        throw new Exception("Redis connection object not set");
+    // ----------------------------------------------------
+    // 3. REDIS CONNECTION (Inline)
+    // ----------------------------------------------------
+    $redisUrl = getenv("REDIS_HOST");
+    if (!$redisUrl) {
+         throw new Exception("REDIS_HOST env var is not set.");
+    }
+
+    $redis = new Redis();
+    $parts = parse_url($redisUrl);
+    
+    // Use TLS if needed (for Upstash/Render)
+    $host = $parts['host'] ?? '';
+    $port = $parts['port'] ?? 6379;
+    $user = $parts['user'] ?? '';
+    $pass = $parts['pass'] ?? '';
+    
+    $scheme = $parts['scheme'] ?? 'tcp';
+    if ($scheme === 'rediss') {
+        $host = 'tls://' . $host;
+    }
+
+    // Connect with timeout
+    if (!$redis->connect($host, $port, 2.5)) { // 2.5s timeout
+        throw new Exception("Could not connect to Redis host.");
     }
     
+    if ($pass) {
+        if (!$redis->auth($pass)) {
+             throw new Exception("Redis authentication failed.");
+        }
+    }
+
+    // ----------------------------------------------------
+    // 4. VALIDATE SESSION
+    // ----------------------------------------------------
     $userId = $redis->get($token);
-
     if (!$userId) {
-        throw new Exception("Invalid or expired session");
+        throw new Exception("Invalid or expired session.");
     }
 
-    // 3. Fetch profile from MongoDB
-    if (!isset($profiles)) {
-        throw new Exception("MongoDB collection object not set");
+    // ----------------------------------------------------
+    // 5. MONGO CONNECTION (Inline)
+    // ----------------------------------------------------
+    $mongoUri = getenv("MONGO_URI");
+    if (!$mongoUri) {
+        throw new Exception("MONGO_URI env var is not set.");
+    }
+    
+    if (!class_exists('MongoDB\Client')) {
+        throw new Exception("MongoDB Client library not loaded.");
     }
 
+    $client = new MongoDB\Client($mongoUri);
+    $db = $client->selectDatabase("guvi_internship");
+    $profiles = $db->profiles;
+
+    // ----------------------------------------------------
+    // 6. FETCH DATA
+    // ----------------------------------------------------
     $profile = $profiles->findOne(
         ["user_id" => (int)$userId],
         ["projection" => ["_id" => 0]]
     );
 
-    // If no profile found in Mongo, return empty data with Name from MySQL (optional, effectively handling null)
+    // Default object if not found
     if (!$profile) {
-        // Just return empty or partial data instead of error, as profile might be brand new
-         $profile = [
-            "age" => "",
-            "dob" => "",
-            "contact" => ""
-        ];
+        $profile = (object)[];
     }
     
-    // Merge user_id
-    $profile['user_id'] = (int)$userId;
+    // Check key fields
+    $resultData = [
+        "user_id" => (int)$userId,
+        "age" => $profile['age'] ?? '',
+        "dob" => $profile['dob'] ?? '',
+        "contact" => $profile['contact'] ?? ''
+    ];
 
     echo json_encode([
         "status" => "success",
-        "data" => $profile
+        "data" => $resultData
     ]);
     exit;
 
 } catch (Throwable $e) {
-    // Return 200 so frontend consumes the JSON error message
+    // FORCE 200 OK so frontend handles the error
     http_response_code(200); 
     echo json_encode([
         "status" => "error",
-        "message" => "Server Error: " . $e->getMessage(),
-        "trace" => $e->getTraceAsString()
+        "message" => "Backend Error: " . $e->getMessage()
     ]);
     exit;
 }
